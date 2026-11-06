@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserSettings(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.defaultMode in ['NORMAL', 'SOS', 'STROBE'] &&
+             data.strobeFrequency is int && data.strobeFrequency >= 1 && data.strobeFrequency <= 20 &&
+             data.hapticFeedback is bool &&
+             (!('screenLightColor' in data) || (data.screenLightColor is string && data.screenLightColor.size() <= 16)) &&
+             (!('screenBrightness' in data) || (data.screenBrightness is number && data.screenBrightness >= 0.0 && data.screenBrightness <= 1.0));
+    }
+
+    function isValidFlashlightLog(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.action in ['ON', 'OFF', 'SOS', 'STROBE', 'SCREEN'] &&
+             data.durationSeconds is int && data.durationSeconds >= 0 && data.durationSeconds <= 86400;
+    }
+
+    match /users/{userId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      match /settings/{settingsId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(settingsId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'defaultMode', 'strobeFrequency', 'hapticFeedback', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'defaultMode', 'strobeFrequency', 'hapticFeedback', 'screenLightColor', 'screenBrightness', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidUserSettings(incoming());
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(settingsId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidUserSettings(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['defaultMode', 'strobeFrequency', 'hapticFeedback', 'screenLightColor', 'screenBrightness', 'updatedAt']);
+
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(settingsId);
+      }
+
+      match /logs/{logId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(logId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'action', 'durationSeconds', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'action', 'durationSeconds', 'createdAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidFlashlightLog(incoming());
+
+        allow update: if false;
+
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(logId);
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "AYOUB Flash-Lite",
+  "description": "A real working Android flashlight application with native CameraManager LED torch control, SOS strobe mode, and battery status.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

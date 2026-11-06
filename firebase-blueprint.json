@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "UserSettings": {
+      "title": "UserSettings",
+      "description": "User preferences for Flashlight Pro including default mode and strobe frequency",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns these settings"
+        },
+        "defaultMode": {
+          "type": "string",
+          "description": "Default mode for flashlight startup (NORMAL, SOS, STROBE)",
+          "enum": ["NORMAL", "SOS", "STROBE"]
+        },
+        "strobeFrequency": {
+          "type": "integer",
+          "description": "Flash frequency for strobe mode in Hz (1 to 20)"
+        },
+        "hapticFeedback": {
+          "type": "boolean",
+          "description": "Whether tactile vibration feedback is enabled for buttons"
+        },
+        "screenLightColor": {
+          "type": "string",
+          "description": "Hex color string for screen light fallback"
+        },
+        "screenBrightness": {
+          "type": "number",
+          "description": "Brightness float between 0.0 and 1.0 for screen illumination"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp. Must be server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp. Must be server timestamp."
+        }
+      },
+      "required": ["userId", "defaultMode", "strobeFrequency", "hapticFeedback", "createdAt", "updatedAt"]
+    },
+    "FlashlightLog": {
+      "title": "FlashlightLog",
+      "description": "Activity log entry tracking flashlight activation sessions",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user"
+        },
+        "action": {
+          "type": "string",
+          "description": "Action performed (ON, OFF, SOS, STROBE, SCREEN)",
+          "enum": ["ON", "OFF", "SOS", "STROBE", "SCREEN"]
+        },
+        "durationSeconds": {
+          "type": "integer",
+          "description": "Duration the flashlight stayed on in seconds"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp. Must be server timestamp."
+        }
+      },
+      "required": ["userId", "action", "durationSeconds", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/settings/{settingsId}": {
+      "schema": {
+        "$ref": "#/entities/UserSettings"
+      },
+      "description": "User specific flashlight configuration and preferences"
+    },
+    "/users/{userId}/logs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/FlashlightLog"
+      },
+      "description": "User specific history of flashlight activations"
+    }
+  }
+}
